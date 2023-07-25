@@ -10,18 +10,20 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 pub struct Config {
     sub_command: String,
-    file_path: String
+    file_path: Option<String>, // we do not get a file_path when establishing a server
 }
 
 impl Config {
 
-    pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("Not enough arguments");
-        }
+    pub fn build(
+        mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
+        args.next();
 
-        let sub_command = args[1].clone();
-        let file_path = args[2].clone();
+        let sub_command = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a subcommand"),
+        };
+        let file_path = args.next();
     
         Ok(Config { sub_command, file_path })
     }
