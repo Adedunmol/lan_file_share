@@ -26,3 +26,8 @@ impl Config {
     }
 
 }
+
+
+mod tests {
+    use super::*;
+}
