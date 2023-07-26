@@ -3,11 +3,20 @@ use local_ip_address::local_ip;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     // run the logic of the program here
-    let address = get_local_ip().to_string();
 
     if config.sub_command == "-receive" {
         // Setup the server here
-        let _ = setup_server(&address); // handle error here
+        let _ = setup_server(); // handle error here
+    } else if config.sub_command == "-connect" {
+        // Setup the client to connect to the server here
+        let address = if let Some(arg) = config.address_or_file_path {
+            arg
+        } else {
+            eprintln!("Did not get an address");
+            process::exit(1);
+        };
+
+        let _ = setup_connection(&address); //handle error here
     } else {
         eprintln!("Subcommand not recognized");
         process::exit(1);
@@ -18,7 +27,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 pub struct Config {
     sub_command: String,
-    file_path: Option<String>, // we do not get a file_path when establishing a server
+    address_or_file_path: Option<String>, // we do not get a file_path when establishing a server
 }
 
 impl Config {
@@ -31,9 +40,9 @@ impl Config {
             Some(arg) => arg,
             None => return Err("Didn't get a subcommand"),
         };
-        let file_path = args.next();
+        let address_or_file_path = args.next();
     
-        Ok(Config { sub_command, file_path })
+        Ok(Config { sub_command, address_or_file_path })
     }
 
 }
@@ -47,7 +56,9 @@ fn get_local_ip() -> IpAddr {
     ip_address
 }
 
-fn setup_server(address: &str) {
+fn setup_server() {
+    let address = get_local_ip();
+
     // This returns an address without an assigned port to signal to the OS to assign one for us
     let address_without_port = format!("{}:0", address);
 
@@ -60,7 +71,7 @@ fn setup_server(address: &str) {
 
     let port = listener.local_addr().unwrap().port();
 
-    println!("{address}:{port}");
+    println!("Server is available on {address}:{port}");
 
     for stream in listener.incoming() {
         let stream = stream.unwrap_or_else(|err| {
@@ -71,8 +82,18 @@ fn setup_server(address: &str) {
         handle_connection(stream);
     }
 
-    // Ok(format!("{address}:{port}"))
 
+}
+
+fn setup_connection(address: &str) -> std::io::Result<()> {
+    let mut stream = TcpStream::connect(address).unwrap_or_else(|err| {
+        eprintln!("An error occurred while trying to connect to the server: {err}");
+        process::exit(1);
+    });
+
+    stream.write("Hello".as_bytes());
+
+    Ok(())
 }
 
 fn handle_connection(mut stream: TcpStream) {
