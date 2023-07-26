@@ -1,11 +1,19 @@
-use std::{ error::Error, process, net::IpAddr};
+use std::{ error::Error, process, net::{IpAddr, TcpListener, TcpStream }, io::{ BufReader, prelude::* }};
 use local_ip_address::local_ip;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     // run the logic of the program here
-    todo!()
+    let address = get_local_ip().to_string();
 
-    // Ok(())
+    if config.sub_command == "-receive" {
+        // Setup the server here
+        let _ = setup_server(&address); // handle error here
+    } else {
+        eprintln!("Subcommand not recognized");
+        process::exit(1);
+    }
+    
+    Ok(())
 }
 
 pub struct Config {
@@ -39,8 +47,48 @@ fn get_local_ip() -> IpAddr {
     ip_address
 }
 
+fn setup_server(address: &str) {
+    // This returns an address without an assigned port to signal to the OS to assign one for us
+    let address_without_port = format!("{}:0", address);
+
+    let listener = TcpListener::bind(address_without_port).unwrap_or_else(|err| {
+        eprintln!("Error occurred while trying to setup server: {err}");
+        process::exit(1);
+    });
+
+    println!("Server has been set up");
+
+    let port = listener.local_addr().unwrap().port();
+
+    println!("{address}:{port}");
+
+    for stream in listener.incoming() {
+        let stream = stream.unwrap_or_else(|err| {
+            eprintln!("An error occurred: {err}");
+            process::exit(1);
+        });
+
+        handle_connection(stream);
+    }
+
+    // Ok(format!("{address}:{port}"))
+
+}
+
+fn handle_connection(mut stream: TcpStream) {
+    let buf_reader = BufReader::new(&mut stream);
+
+    let data: Vec<_> = buf_reader
+                            .lines()
+                            .map(|result| result.unwrap())
+                            .take_while(|line| !line.is_empty())
+                            .collect();
+
+    println!("{:#?}", data);
+}
 
 mod tests {
+
     use super::*;
 
     #[test]
