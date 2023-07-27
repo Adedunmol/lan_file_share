@@ -6,17 +6,28 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     if config.sub_command == "-receive" {
         // Setup the server here
-        let _ = setup_server(); // handle error here
-    } else if config.sub_command == "-connect" {
-        // Setup the client to connect to the server here
-        let address = if let Some(arg) = config.address_or_file_path {
-            arg
-        } else {
-            eprintln!("Did not get an address");
-            process::exit(1);
+        let _ = setup_server();
+    } else if config.sub_command == "-send" {
+        // Setup the client to connect and send the data to the receiver here
+        let address = match config.address {
+            Some(arg) => arg,
+            None => {
+                eprintln!("Did not get an address");
+                process::exit(1);
+            }
+        };
+
+        let file_path = match config.file_path {
+            Some(path) => path,
+            None => {
+                eprintln!("File path not specified");
+                process::exit(1);
+            }
         };
 
         let _ = setup_connection(&address); //handle error here
+
+        // open file and send here
     } else {
         eprintln!("Subcommand not recognized");
         process::exit(1);
@@ -27,7 +38,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 pub struct Config {
     sub_command: String,
-    address_or_file_path: Option<String>, // we do not get a file_path when establishing a server
+    file_path: Option<String>, // we do not get a file_path when establishing a server
+    address: Option<String>
 }
 
 impl Config {
@@ -40,9 +52,10 @@ impl Config {
             Some(arg) => arg,
             None => return Err("Didn't get a subcommand"),
         };
-        let address_or_file_path = args.next();
+        let address = args.next();
+        let file_path = args.next();
     
-        Ok(Config { sub_command, address_or_file_path })
+        Ok(Config { sub_command, address, file_path })
     }
 
 }
@@ -81,7 +94,6 @@ fn setup_server() {
 
         handle_connection(stream);
     }
-
 
 }
 
