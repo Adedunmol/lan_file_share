@@ -25,7 +25,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             }
         };
 
-        let _ = setup_connection(&address); //handle error here
+        let _ = setup_connection_and_send(&address, &file_path); //handle error here
 
         // open file and send here
     } else {
@@ -97,7 +97,7 @@ fn setup_server() {
 
 }
 
-fn setup_connection(address: &str) -> std::io::Result<()> {
+fn setup_connection_and_send(address: &str, file_path: &str) -> std::io::Result<()> {
     let mut stream = TcpStream::connect(address).unwrap_or_else(|err| {
         eprintln!("An error occurred while trying to connect to the server: {err}");
         process::exit(1);
