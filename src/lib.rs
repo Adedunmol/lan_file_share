@@ -1,4 +1,4 @@
-use std::{ error::Error, process, net::{IpAddr, TcpListener, TcpStream }, io::{ BufReader, prelude::* }};
+use std::{ fs::File, error::Error, process, net::{IpAddr, TcpListener, TcpStream }, io::{ BufReader, prelude::* }};
 use local_ip_address::local_ip;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -103,7 +103,13 @@ fn setup_connection_and_send(address: &str, file_path: &str) -> std::io::Result<
         process::exit(1);
     });
 
-    stream.write("Hello".as_bytes());
+    let file = File::open(file_path)?;
+    println!("{:#?}", file);
+    let mut buf_reader = BufReader::new(file);
+    let mut contents = String::new();
+    buf_reader.read_to_string(&mut contents);
+
+    stream.write(contents.as_bytes());
 
     Ok(())
 }
